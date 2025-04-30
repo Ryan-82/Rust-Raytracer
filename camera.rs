@@ -4,11 +4,13 @@ use crate::Ray;
 use crate::Point;
 use crate::Vector;
 use crate::Interval;
+use crate::material::*;
 
 use std::fs::File;
 use std::io::prelude::*;
 
 use crate::color::write_color;
+use crate::degrees_to_radians;
 
 use crate::random_f64;
 
@@ -19,6 +21,7 @@ pub struct Camera {
 
 	pixel_color_scale: f64,
 	max_depth: i32,
+	vfov: f64,
 	image_height: i32,
 	center: Point,
 	pixel00_loc: Point,
@@ -59,7 +62,10 @@ impl Camera {
 
 		// Determine viewport dimensions
 		let focal_length = 1.0;
-		let viewport_height = 2.0;
+		let vfov = 90.0;
+		let theta = degrees_to_radians(vfov);
+		let h = f64::tan(theta/2.0);
+		let viewport_height = 2.0 * h * focal_length;
 		let viewport_width = viewport_height * aspect_ratio;
 
 		// Calculate the vectors across the horizontal and down the vertical viewport edges
@@ -81,6 +87,7 @@ impl Camera {
 			pixel_color_scale,
 			image_height,
 			max_depth: 10,
+			vfov,
 			center,
 			pixel00_loc,
 			pixel_delta_u,
@@ -96,10 +103,16 @@ impl Camera {
 		let mut rec = HitRecord::default();
 
 		if world.hit(r, Interval::new(0.001, f64::INFINITY), &mut rec) {
-			//return 0.5 * (rec.normal + Color::unit_vector());
-			//let direction: Vector = Vector::random_on_hemisphere(&rec.normal);
-			let direction: Vector = rec.normal + Vector::random_normal_vector();
-			return 0.5 * Self::ray_color(&Ray::new(rec.hit_point, direction), depth - 1, world);
+			let mut scattered = Ray::new(Vector::null_vector(), Vector::null_vector());
+			let mut attenuation = Color::null_vector();
+
+			if rec.material.scatter(r, &rec, &mut attenuation, &mut scattered) {
+				return attenuation * Self::ray_color(&scattered, depth - 1, world);
+			}
+			return Color::null_vector();
+
+			//let direction: Vector = rec.normal + Vector::random_normal_vector();
+			//return 0.5 * Self::ray_color(&Ray::new(rec.hit_point, direction), depth - 1, world);
 		}
 		/*if t > 0.0 {
 			let n: Vector = (r.at(t) - Vector::new(0.0,0.0,-1.5)).normalize();

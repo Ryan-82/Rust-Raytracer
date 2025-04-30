@@ -87,8 +87,21 @@ impl Vector {
 		}
 		return -1.0 * on_unit_sphere;
 	}
-	pub fn reflect(v: &Vector, n: &Vector) {
-		return v - 2 * Vector::dot(v, n) * n;
+	pub fn reflect(v: &Vector, n: &Vector) -> Vector {
+		return *v - 2.0 * Vector::dot(v, n) * *n;
+	}
+
+	pub fn refract(uv: &Vector, n: &Vector, etai_over_etat: f64) -> Vector {
+		let mut cos_theta: f64 = 1.0;
+		{
+			let temp: f64 = Vector::dot(&(*uv * (-1.0)), n);
+			if temp < cos_theta {
+				cos_theta = temp;
+			}
+		}
+		let r_out_perpendicular = etai_over_etat * (*uv + *n * cos_theta);
+		let r_out_parallel = *n * -f64::sqrt((1.0 - (r_out_perpendicular.length_squared())).abs());
+		return r_out_perpendicular + r_out_parallel;
 	}
 
 	pub fn near_zero(&self) -> bool {

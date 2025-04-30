@@ -3,12 +3,14 @@ use crate::Vector;
 use crate::Point;
 use crate::Ray;
 use crate::Interval;
+use crate::material::*;
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Clone, Copy, Default)]
 pub struct HitRecord {
 	pub hit_point: Point,
 	pub normal: Vector,
-	front_face: bool,
+	pub material: MaterialEnum,
+	pub front_face: bool,
 	t: f64,
 }
 
@@ -33,10 +35,12 @@ pub trait Hittable {
 pub struct Sphere {
 	center: Point,
 	radius: f64,
+	material: MaterialEnum,
+
 }
 
 impl Sphere {
-	pub fn new (center: Point, radius: f64) -> Sphere {
+	pub fn new (center: Point, radius: f64, material: MaterialEnum) -> Sphere {
 		let mut checked_radius: f64 = 0.0;
 		if radius > checked_radius {
 			checked_radius = radius;
@@ -44,6 +48,7 @@ impl Sphere {
 		Sphere {
 			center,
 			radius: checked_radius,
+			material,
 		}
 	}
 }
@@ -78,6 +83,7 @@ impl Hittable for Sphere {
 		rec.hit_point = r.at(rec.t);
 		//the normal is a unit vector.
 		rec.set_face_normal(&r, &((rec.hit_point - self.center) / self.radius));
+		rec.material = self.material;
 
 		return true;
 	}
@@ -94,8 +100,11 @@ impl HittableList {
 			objects: Vec::new(),
 		}
 	}
-	pub fn add(&mut self, object: Box<dyn Hittable>) {
+	pub fn raw_add(&mut self, object: Box<dyn Hittable>) {
 		self.objects.push(object);
+	}
+	pub fn add(&mut self, x:f64, y:f64, z:f64, radius: f64, material: MaterialEnum) {
+		self.raw_add(Box::new(Sphere::new(Point::new(x,y,z), radius, material)));
 	}
 
 	// This goes through all the existing objects for every ray, and figures out where the closest point hit was.
@@ -111,7 +120,7 @@ impl HittableList {
 			if object.hit(r, Interval::new(ray_t.min, closest_so_far), &mut temp_rec) {
 				hit_anything = true;
 				closest_so_far = temp_rec.t;
-				*rec = temp_rec;
+				*rec = temp_rec.clone();
 			}
 		}
 

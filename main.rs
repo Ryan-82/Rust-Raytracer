@@ -22,6 +22,9 @@ use camera::*;
 use std::fs::File;
 use std::io::prelude::*;
 
+mod material;
+use material::*;
+
 use rand::Rng;
 pub type Color = Vector;
 pub type Point = Vector;
@@ -60,9 +63,9 @@ fn main() -> std::io::Result<()> {
 	//Image
 	let aspect_ratio: f64 = 16.0 / 9.0;
 
-	let image_width: i32 = 400;
+	let image_width: i32 = 300;
 
-	let samples_per_pixel: i32 = 100;
+	let samples_per_pixel: i32 = 50;
 
 
 	// Initialization
@@ -82,8 +85,14 @@ fn main() -> std::io::Result<()> {
 
 
 	let mut world: HittableList = HittableList::new();
-	world.add(Box::new(Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5)));
-	world.add(Box::new(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0)));
+
+	world.add(0.0, 0.0, -1.2, 0.5, MaterialEnum::new_lambertian(0.1, 0.2, 0.5) );
+	//right
+	world.add(1.0, 0.0, -1.0, 0.5, MaterialEnum::new_metal(0.6, 0.2, 0.8, 1.0) );
+	//left
+	world.add(-1.0, 0.0, -1.0, 0.5, MaterialEnum::new_dielectric(1.50) );
+	world.add(-1.0, 0.0, -1.0, 0.4, MaterialEnum::new_dielectric(1.00/1.50) );
+	world.add(0.0, -100.5, -1.0, 100.0, MaterialEnum::new_lambertian(0.8, 0.8, 0.0));
 
 	camera.render(&world, &mut file);
 
